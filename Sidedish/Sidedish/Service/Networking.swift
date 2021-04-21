@@ -30,4 +30,15 @@ class Networking {
             }
         }
     }
+    
+    func downloadImage(from url: URL, completion: @escaping ((Data) -> ()) ) {
+        URLSession.shared.dataTask(with: url) { (data, response, error) in
+            guard let data = data, error == nil else {
+                print(error!.localizedDescription)
+                return
+            }
+//            self.fileManager.write(fileName: url.lastPathComponent, image: data)
+            completion(data)
+        }.resume()
+    }
 }

@@ -29,6 +29,8 @@ class FileManagerService {
         let file = cacheDirectory.appendingPathComponent(fileName)
         do {
             try image.write(to: file)
+        } catch {
+            print(error)
         }
     }
 }

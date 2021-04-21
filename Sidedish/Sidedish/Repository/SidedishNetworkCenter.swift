@@ -20,10 +20,17 @@ class SidedishNetworkCenter {
         self.networking.requestCategory(url: url) { (result: Result<SidedishOfCategory, AFError>) in
             switch result {
             case .success(let sidedishOfCategory):
-                completion(.success(sidedishOfCategory.body) )
+                completion(.success(sidedishOfCategory.body))
+                
             case .failure(let error):
                 completion(.failure(error))
             }
+        }
+    }
+    
+    func fetchImage(url: URL, completion: @escaping ((Data) -> ())) {
+        self.networking.downloadImage(from: url) { (data) in
+            completion(data)
         }
     }
 }

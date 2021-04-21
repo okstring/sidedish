@@ -16,12 +16,14 @@ class ViewController: UIViewController {
     var itemViewModel: ItemViewModel!
     var headerViewModel: HeaderViewModel!
     var fetchItemSubscription = Set<AnyCancellable>()
+    var fetchImageSubscription = Set<AnyCancellable>()
     var fileManager = FileManagerService()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         collectionView.delegate = self
         collectionView.dataSource = self
+//        self.collectionView.register(ItemCollectionViewCell.self, forCellWithReuseIdentifier: ItemCollectionViewCell.identifier)
         
         self.itemViewModel = ItemViewModel()
         self.headerViewModel = HeaderViewModel()
@@ -30,6 +32,12 @@ class ViewController: UIViewController {
             .sink { [weak self] _ in
                 self?.collectionView.reloadSections(IndexSet(integer: 0))
             }.store(in: &fetchItemSubscription)
+        
+        self.itemViewModel.$images
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] (imageDatas) in
+                self?.collectionView.reloadSections(IndexSet(integer: 0))
+            }.store(in: &fetchImageSubscription)
         
         self.itemViewModel.errorHandler = { error in
             Toast(text: error).show()
@@ -42,19 +50,6 @@ class ViewController: UIViewController {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = true
     }
-    
-    func downloadImage(from url: URL, to cell: ItemCollectionViewCell) {
-        URLSession.shared.dataTask(with: url) { (data, response, error) in
-            guard let data = data, error == nil else {
-                print(error!.localizedDescription)
-                return
-            }
-            DispatchQueue.main.async {
-                cell.dishImage.image = UIImage(data: data)
-            }
-            self.fileManager.write(fileName: url.lastPathComponent, image: data)
-        }.resume()
-    }
 }
 
 extension ViewController: UICollectionViewDelegate, UICollectionViewDataSource {
@@ -66,16 +61,20 @@ extension ViewController: UICollectionViewDelegate, UICollectionViewDataSource {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ItemCollectionViewCell.identifier, for: indexPath) as? ItemCollectionViewCell else {
             return ItemCollectionViewCell()
         }
+        
+        
         let item = self.itemViewModel.items[indexPath.row]
         
-        guard let url = URL(string: item.image) else { return ItemCollectionViewCell() }
+//        guard let url = URL(string: item.image) else { return ItemCollectionViewCell() }
 
-        guard let imageData = fileManager.checkCacheData(with: url.lastPathComponent) else {
-            downloadImage(from: url, to: cell)
-            return cell
-        }
+//        guard let imageData = fileManager.checkCacheData(with: url.lastPathComponent) else {
+//            downloadImage(from: url, to: cell)
+//            return cell
+//        }
         cell.configure(model: item)
-        cell.configure(image: UIImage(data: imageData) ?? UIImage())
+        
+        guard let data = self.itemViewModel.images[indexPath.row] else { return ItemCollectionViewCell() }
+        cell.configure(data: data)
 
         let attributeString: NSMutableAttributedString =  NSMutableAttributedString(string: item.nPrice ?? "")
         attributeString.addAttribute(NSAttributedString.Key.strikethroughStyle, value: 2, range: NSMakeRange(0, attributeString.length))
