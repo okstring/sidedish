@@ -17,6 +17,6 @@ class HeaderCollectionReusableView: UICollectionReusableView {
     
     func configure(title: String, count: Int) {
         self.title.text = title
-        self.countLabel.text = "\(count)"
+        self.countLabel.text = "\(count)개 상품이 등록되어 있습니다."
     }
 }

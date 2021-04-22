@@ -48,13 +48,10 @@ class ItemViewModel {
         }
     }
     
-    func fetchImage() {
-        for (index, item) in self.items.enumerated() {
-            guard let url = URL(string: item.image) else { return }
-            DispatchQueue.global().async {
-                self.sidedishProcessing.getImage(url: url) { (data) in
-                    self.images[index] = data
-                }
+    func fetchImage(url: URL, completion: @escaping (Data?) -> ()) {
+        DispatchQueue.global().async {
+            self.sidedishProcessing.getImage(url: url) { (data) in
+                completion(data)
             }
         }
     }

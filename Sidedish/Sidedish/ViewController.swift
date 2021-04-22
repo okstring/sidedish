@@ -15,10 +15,8 @@ class ViewController: UIViewController {
     @IBOutlet weak var collectionView: UICollectionView!
     var itemViewModel: ItemViewModel!
     var headerViewModel: HeaderViewModel!
-    
     var fetchItemSubscription = Set<AnyCancellable>()
     var fetchImageSubscription = Set<AnyCancellable>()
-    
     typealias DataSource = UICollectionViewDiffableDataSource<Section, SidedishItem>
     typealias Snapshot = NSDiffableDataSourceSnapshot<Section, SidedishItem>
     private lazy var dataSource = makeDataSource()
@@ -69,7 +67,7 @@ class ViewController: UIViewController {
         DataSource(collectionView: self.collectionView) { (collectionView, indexPath, sidedishItem) -> UICollectionViewCell? in
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ItemCollectionViewCell.identifier, for: indexPath) as? ItemCollectionViewCell else { return nil }
             cell.configure(model: sidedishItem)
-//            cell.configure(data: <#T##Data#>)
+            cell.delegate = self
             return cell
         }
     }
@@ -84,5 +82,11 @@ class ViewController: UIViewController {
 extension ViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         return CGSize(width: self.view.frame.width, height: 130)
+    }
+}
+
+extension ViewController: ImageFetchable {
+    func didFetchImage(url: URL, completion: @escaping (Data?) -> ()) {
+        self.itemViewModel.fetchImage(url: url, completion: completion)
     }
 }

@@ -7,7 +7,13 @@
 
 import UIKit
 
+protocol ImageFetchable: class {
+    func didFetchImage(url: URL, completion: @escaping (Data?) -> ())
+}
+
 class ItemCollectionViewCell: UICollectionViewCell {
+    
+    weak var delegate: ImageFetchable?
     
     static let identifier = "ItemCollectionViewCell"
     
@@ -20,9 +26,17 @@ class ItemCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var launchBadge: UILabel!
     
     func configure(model: SidedishItem) {
+        guard let imageURL = URL(string: model.image) else { return }
+        delegate?.didFetchImage(url: imageURL, completion: { (data) in
+            guard let data = data else { return }
+            DispatchQueue.main.async {
+                self.dishImage.image = UIImage(data: data)
+            }
+        })
         dishName.text = model.title
         dishDescription.text = model.description
         sellingPrice.text = model.sPrice
+        
         
         let priceString = model.nPrice == nil ? "" : "\(model.nPrice ?? "")원"
         let attributeString: NSMutableAttributedString =  NSMutableAttributedString(string: priceString)
