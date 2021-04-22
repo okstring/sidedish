@@ -15,35 +15,65 @@ class ViewController: UIViewController {
     @IBOutlet weak var collectionView: UICollectionView!
     var itemViewModel: ItemViewModel!
     var headerViewModel: HeaderViewModel!
+    
     var fetchItemSubscription = Set<AnyCancellable>()
     var fetchImageSubscription = Set<AnyCancellable>()
     
+    typealias DataSource = UICollectionViewDiffableDataSource<Section, SidedishItem>
+    typealias Snapshot = NSDiffableDataSourceSnapshot<Section, SidedishItem>
+    private lazy var dataSource = makeDataSource()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        collectionView.delegate = self
-        collectionView.dataSource = self
-        
         self.itemViewModel = ItemViewModel()
         self.headerViewModel = HeaderViewModel()
-        self.itemViewModel.$items
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.collectionView.reloadSections(IndexSet(integer: 0))
-                self?.itemViewModel.fetchImage()
-            }.store(in: &fetchItemSubscription)
-        
-        self.itemViewModel.$images
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] (imageDatas) in
-                self?.collectionView.reloadSections(IndexSet(integer: 0))
-            }.store(in: &fetchImageSubscription)
-        
+        collectionView.dataSource = dataSource
+        collectionView.delegate = self
+        itemListDidLoad()
+        headerProvide()
+
         self.itemViewModel.errorHandler = { error in
             Toast(text: error).show()
         }
         
-        self.itemViewModel.fetchItems()
     }
+    
+    private func headerProvide() {
+        self.dataSource.supplementaryViewProvider = { (collectionView, kind, indexPath) -> UICollectionReusableView? in
+            guard kind == UICollectionView.elementKindSectionHeader else {
+                return nil
+            }
+            let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind,
+                                                                         withReuseIdentifier: HeaderCollectionReusableView.identifier,
+                                                                         for: indexPath) as? HeaderCollectionReusableView
+            let title = Section.allCases[indexPath.section].title
+            guard let itemCount = self.itemViewModel.checkItemCount(of: indexPath.section) else { return nil }
+            header?.configure(title: title, count: itemCount)
+            return header
+        }
+        
+    }
+    
+    private func itemListDidLoad() {
+        var snapshot = Snapshot()
+        snapshot.appendSections(Section.allCases)
+        Section.allCases.forEach { (section) in
+            self.itemViewModel.fetchItems(of: section) { (sidedishItems) in
+                snapshot.appendItems(sidedishItems, toSection: section)
+                self.dataSource.apply(snapshot)
+            }
+        }
+    }
+    
+    private func makeDataSource() -> DataSource {
+        DataSource(collectionView: self.collectionView) { (collectionView, indexPath, sidedishItem) -> UICollectionViewCell? in
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ItemCollectionViewCell.identifier, for: indexPath) as? ItemCollectionViewCell else { return nil }
+            cell.configure(model: sidedishItem)
+//            cell.configure(data: <#T##Data#>)
+            return cell
+        }
+    }
+    
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -51,55 +81,8 @@ class ViewController: UIViewController {
     }
 }
 
-extension ViewController: UICollectionViewDelegate, UICollectionViewDataSource {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return self.itemViewModel.items.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ItemCollectionViewCell.identifier, for: indexPath) as? ItemCollectionViewCell else {
-            return ItemCollectionViewCell()
-        }
-        let item = self.itemViewModel.items[indexPath.row]
-        
-        cell.configure(model: item)
-        guard let data = self.itemViewModel.images[indexPath.row] else { return cell }
-        cell.configure(data: data)
-
-        return cell
-    }
-    
-    func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return self.headerViewModel.titles.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        let header = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionView.elementKindSectionHeader,
-                                                                     withReuseIdentifier: HeaderCollectionReusableView.identifier,
-                                                                     for: indexPath) as! HeaderCollectionReusableView
-        let tapRecognizer = TapToastGestureRecognize(target: self, action: #selector(makingHeaderToast(_:)))
-        tapRecognizer.title = headerViewModel.titles[indexPath.section]
-        tapRecognizer.countText = "\(itemViewModel.items.count)개 상품이 등록되어 있습니다."
-        header.addGestureRecognizer(tapRecognizer)
-        
-        header.title.text = headerViewModel.titles[indexPath.section]
-        header.countLabel.text = "\(itemViewModel.items.count)개 상품이 등록되어 있습니다."
-        return header
-    }
-    
-    @objc func makingHeaderToast(_ sender: TapToastGestureRecognize) {
-        let font = UIFont.systemFont(ofSize: 16)
-        let attributes: [NSAttributedString.Key: Any] = [.font: font]
-        let attributedQuote = NSAttributedString(string: "\(sender.title)\n\(sender.countText)", attributes: attributes)
-        Toast(attributedText: attributedQuote).show()
-    }
-}
-
 extension ViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         return CGSize(width: self.view.frame.width, height: 130)
     }
-    
-    
-    
 }

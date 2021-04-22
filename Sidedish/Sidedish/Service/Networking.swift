@@ -12,6 +12,7 @@ import Alamofire
 class Networking {
     func requestCategory<T: Decodable>(url: String, completion: @escaping (Result<T, AFError>) -> ()) {
         AF.request(url).validate().responseDecodable(of: T.self) { (response) in
+            
             switch response.result {
             case .success(_):
                 completion(response.result)

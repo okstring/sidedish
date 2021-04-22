@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct SidedishItem: Codable {
+struct SidedishItem: Codable, Hashable {
     var detailHash: String
     var image: String
     var alt: String
