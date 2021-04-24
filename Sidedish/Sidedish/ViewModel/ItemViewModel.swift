@@ -24,12 +24,25 @@ class ItemViewModel {
             switch result {
             case .success(let sidedishItems):
                 self.items = sidedishItems
+                for index in 0..<sidedishItems.count {
+                    DispatchQueue.global().async {
+                        self.fetchImage(index: index)
+                    }
+                }
             case .failure(let error):
                 #if DEBUG
                 NSLog(error.localizedDescription)
                 #endif
                 self.errorHandler?(error.localizedDescription)
             }
+        }
+    }
+    
+    func fetchImage(index: Int) {
+        guard let url = URL(string: self.items[index].image) else { return }
+        self.sidedishProcessing.getImage(url: url) { (data) in
+            self.items[index].imageData = data
+            self.imageReloadHandler?(index)
         }
     }
 }

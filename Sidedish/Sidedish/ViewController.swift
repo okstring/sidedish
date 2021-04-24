@@ -34,7 +34,7 @@ class ViewController: UIViewController {
         
         self.itemViewModel.imageReloadHandler = { index in
             self.collectionView.reloadItems(at: [IndexPath(index: index)])
-        }
+    }
         
         self.headerViewActionHander = {
             let title = self.headerViewModel.titles[0]
