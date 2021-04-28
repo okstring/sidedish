@@ -26,7 +26,6 @@ class DetailViewModel {
             case .success(let detailItem):
                 guard let strongSelf = self else { return }
                 strongSelf.currentDetail = detailItem
-                strongSelf.detailHandler?()
                 strongSelf.imageFetchHandler?()
             case .failure(let error):
                 #if DEBUG
